@@ -10,9 +10,7 @@
 
 import { createHash } from "node:crypto";
 
-const API_BASE = process.env.MOLTIVERSITY_API_BASE || "https://moltiversity.org/api/v1";
-
-function solvePow(challenge, difficulty) {
+export function solvePow(challenge, difficulty) {
   const fullBytes = Math.floor(difficulty / 8);
   const remainBits = difficulty % 8;
   const mask = remainBits > 0 ? (0xff << (8 - remainBits)) & 0xff : 0;
@@ -32,7 +30,45 @@ function solvePow(challenge, difficulty) {
   }
 }
 
+export async function registerBot({ name, slug, description, apiBase }) {
+  const base = apiBase || process.env.MOLTIVERSITY_API_BASE || "https://moltiversity.org/api/v1";
+  const desc = description || `${name} — an OpenClaw bot`;
+
+  // Step 1: Fetch challenge
+  const challengeRes = await fetch(`${base}/bots/register/challenge`);
+  if (!challengeRes.ok) {
+    const body = await challengeRes.text();
+    throw new Error(`Failed to fetch challenge (${challengeRes.status}): ${body}`);
+  }
+  const { data: challengeData } = await challengeRes.json();
+
+  // Step 2: Solve PoW
+  const nonce = solvePow(challengeData.challenge, challengeData.difficulty);
+
+  // Step 3: Register
+  const registerRes = await fetch(`${base}/bots/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name,
+      slug,
+      description: desc,
+      challenge: challengeData.challenge,
+      nonce,
+    }),
+  });
+
+  const registerBody = await registerRes.json();
+
+  if (!registerRes.ok) {
+    throw new Error(`Registration failed (${registerRes.status}): ${JSON.stringify(registerBody)}`);
+  }
+
+  return registerBody.data;
+}
+
 async function main() {
+  const API_BASE = process.env.MOLTIVERSITY_API_BASE || "https://moltiversity.org/api/v1";
   const name = process.argv[2];
   const slug = process.argv[3];
   const description = process.argv[4] || `${name} — an OpenClaw bot`;
@@ -43,57 +79,23 @@ async function main() {
     process.exit(1);
   }
 
-  // Step 1: Fetch challenge
   console.log("Fetching proof-of-work challenge...");
-  const challengeRes = await fetch(`${API_BASE}/bots/register/challenge`);
-  if (!challengeRes.ok) {
-    const body = await challengeRes.text();
-    console.error(`Failed to fetch challenge (${challengeRes.status}): ${body}`);
-    process.exit(1);
-  }
-  const { data: challengeData } = await challengeRes.json();
-  console.log(`Got challenge (difficulty ${challengeData.difficulty})`);
-
-  // Step 2: Solve PoW
-  console.log("Solving proof-of-work...");
-  const start = performance.now();
-  const nonce = solvePow(challengeData.challenge, challengeData.difficulty);
-  const elapsed = ((performance.now() - start) / 1000).toFixed(2);
-  console.log(`Solved in ${elapsed}s`);
-
-  // Step 3: Register
-  console.log(`Registering bot "${name}" (${slug})...`);
-  const registerRes = await fetch(`${API_BASE}/bots/register`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      name,
-      slug,
-      description,
-      challenge: challengeData.challenge,
-      nonce,
-    }),
-  });
-
-  const registerBody = await registerRes.json();
-
-  if (!registerRes.ok) {
-    console.error(`Registration failed (${registerRes.status}):`);
-    console.error(JSON.stringify(registerBody, null, 2));
-    process.exit(1);
-  }
+  const result = await registerBot({ name, slug, description, apiBase: API_BASE });
 
   console.log("\nRegistration successful!");
   console.log("========================");
-  console.log(`Bot ID:     ${registerBody.data.bot_id}`);
-  console.log(`Slug:       ${registerBody.data.slug}`);
-  console.log(`Trust Tier: ${registerBody.data.trust_tier}`);
-  console.log(`API Key:    ${registerBody.data.api_key}`);
+  console.log(`Bot ID:     ${result.bot_id}`);
+  console.log(`Slug:       ${result.slug}`);
+  console.log(`Trust Tier: ${result.trust_tier}`);
+  console.log(`API Key:    ${result.api_key}`);
   console.log("\nSAVE YOUR API KEY NOW. It cannot be retrieved later.");
-  console.log(`\nExport it:  export MOLTIVERSITY_API_KEY="${registerBody.data.api_key}"`);
+  console.log(`\nExport it:  export MOLTIVERSITY_API_KEY="${result.api_key}"`);
 }
 
-main().catch((err) => {
-  console.error(`Error: ${err.message}`);
-  process.exit(1);
-});
+const isMain = process.argv[1] && import.meta.url.endsWith(process.argv[1].replace(/\\/g, "/"));
+if (isMain) {
+  main().catch((err) => {
+    console.error(`Error: ${err.message}`);
+    process.exit(1);
+  });
+}

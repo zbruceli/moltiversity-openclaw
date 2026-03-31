@@ -9,69 +9,39 @@
 //
 // Requires: MOLTIVERSITY_API_KEY environment variable
 
-const API_BASE = process.env.MOLTIVERSITY_API_BASE || "https://moltiversity.org/api/v1";
-const API_KEY = process.env.MOLTIVERSITY_API_KEY;
-
-function headers() {
-  return { Authorization: `Bearer ${API_KEY}` };
+export function makeHeaders(apiKey) {
+  return { Authorization: `Bearer ${apiKey}` };
 }
 
-async function apiGet(path) {
-  const res = await fetch(`${API_BASE}${path}`, { headers: headers() });
+export async function apiGet({ apiBase, apiKey, path }) {
+  const res = await fetch(`${apiBase}${path}`, { headers: makeHeaders(apiKey) });
   const body = await res.json();
   if (!res.ok) {
-    console.error(`Error (${res.status}): ${body.error?.message || JSON.stringify(body)}`);
-    process.exit(1);
+    throw new Error(`Error (${res.status}): ${body.error?.message || JSON.stringify(body)}`);
   }
   return body.data;
 }
 
-async function showProfile() {
-  const profile = await apiGet("/bots/me");
-  console.log("Bot Profile");
-  console.log("===========");
-  console.log(`Name:        ${profile.name}`);
-  console.log(`Slug:        ${profile.slug}`);
-  console.log(`Status:      ${profile.status}`);
-  console.log(`Trust Score: ${profile.trust_score}`);
-  console.log(`Trust Tier:  ${profile.trust_tier}`);
-  if (profile.description) console.log(`Description: ${profile.description}`);
-  if (profile.skills_count !== undefined) console.log(`Skills:      ${profile.skills_count}`);
-  console.log(`Registered:  ${profile.created_at}`);
+export async function getProfile({ apiBase, apiKey }) {
+  return apiGet({ apiBase, apiKey, path: "/bots/me" });
 }
 
-async function showSkills() {
-  const skills = await apiGet("/bots/me/skills");
-  if (!skills || skills.length === 0) {
-    console.log("No skills started yet. Run: node scripts/learn.mjs <skill-slug>");
-    return;
-  }
-  console.log("Your Skills");
-  console.log("===========\n");
-  for (const s of skills) {
-    const score = s.quiz_score !== null ? ` (score: ${s.quiz_score})` : "";
-    console.log(`  ${s.skill_slug} — ${s.level}${score}`);
-  }
+export async function getSkills({ apiBase, apiKey }) {
+  return apiGet({ apiBase, apiKey, path: "/bots/me/skills" });
 }
 
-async function showProgress() {
-  const progress = await apiGet("/bots/me/progress");
-  console.log("Course Progress");
-  console.log("===============\n");
-  console.log(JSON.stringify(progress, null, 2));
+export async function getProgress({ apiBase, apiKey }) {
+  return apiGet({ apiBase, apiKey, path: "/bots/me/progress" });
 }
 
-async function showLeaderboard() {
-  const entries = await apiGet("/bots/leaderboard");
-  console.log("Trust Leaderboard");
-  console.log("=================\n");
-  for (const entry of entries) {
-    const marker = entry.slug === (await apiGet("/bots/me")).slug ? " <-- you" : "";
-    console.log(`  #${entry.rank} ${entry.name} (${entry.trust_tier}) — ${entry.trust_score} pts${marker}`);
-  }
+export async function getLeaderboard({ apiBase, apiKey }) {
+  return apiGet({ apiBase, apiKey, path: "/bots/leaderboard" });
 }
 
 async function main() {
+  const API_BASE = process.env.MOLTIVERSITY_API_BASE || "https://moltiversity.org/api/v1";
+  const API_KEY = process.env.MOLTIVERSITY_API_KEY;
+
   if (!API_KEY) {
     console.error("Error: MOLTIVERSITY_API_KEY environment variable is required.");
     console.error("Run: export MOLTIVERSITY_API_KEY=mlt_bot_your_key_here");
@@ -81,22 +51,59 @@ async function main() {
   const command = process.argv[2];
 
   switch (command) {
-    case "skills":
-      await showSkills();
+    case "skills": {
+      const skills = await getSkills({ apiBase: API_BASE, apiKey: API_KEY });
+      if (!skills || skills.length === 0) {
+        console.log("No skills started yet. Run: node scripts/learn.mjs <skill-slug>");
+        return;
+      }
+      console.log("Your Skills");
+      console.log("===========\n");
+      for (const s of skills) {
+        const score = s.quiz_score !== null ? ` (score: ${s.quiz_score})` : "";
+        console.log(`  ${s.skill_slug} — ${s.level}${score}`);
+      }
       break;
-    case "progress":
-      await showProgress();
+    }
+    case "progress": {
+      const progress = await getProgress({ apiBase: API_BASE, apiKey: API_KEY });
+      console.log("Course Progress");
+      console.log("===============\n");
+      console.log(JSON.stringify(progress, null, 2));
       break;
-    case "leaderboard":
-      await showLeaderboard();
+    }
+    case "leaderboard": {
+      const entries = await getLeaderboard({ apiBase: API_BASE, apiKey: API_KEY });
+      const profile = await getProfile({ apiBase: API_BASE, apiKey: API_KEY });
+      console.log("Trust Leaderboard");
+      console.log("=================\n");
+      for (const entry of entries) {
+        const marker = entry.slug === profile.slug ? " <-- you" : "";
+        console.log(`  #${entry.rank} ${entry.name} (${entry.trust_tier}) — ${entry.trust_score} pts${marker}`);
+      }
       break;
-    default:
-      await showProfile();
+    }
+    default: {
+      const profile = await getProfile({ apiBase: API_BASE, apiKey: API_KEY });
+      console.log("Bot Profile");
+      console.log("===========");
+      console.log(`Name:        ${profile.name}`);
+      console.log(`Slug:        ${profile.slug}`);
+      console.log(`Status:      ${profile.status}`);
+      console.log(`Trust Score: ${profile.trust_score}`);
+      console.log(`Trust Tier:  ${profile.trust_tier}`);
+      if (profile.description) console.log(`Description: ${profile.description}`);
+      if (profile.skills_count !== undefined) console.log(`Skills:      ${profile.skills_count}`);
+      console.log(`Registered:  ${profile.created_at}`);
       break;
+    }
   }
 }
 
-main().catch((err) => {
-  console.error(`Error: ${err.message}`);
-  process.exit(1);
-});
+const isMain = process.argv[1] && import.meta.url.endsWith(process.argv[1].replace(/\\/g, "/"));
+if (isMain) {
+  main().catch((err) => {
+    console.error(`Error: ${err.message}`);
+    process.exit(1);
+  });
+}

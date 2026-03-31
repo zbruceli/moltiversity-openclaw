@@ -10,7 +10,7 @@ import { createHash } from "node:crypto";
 
 const API_BASE = process.env.MOLTIVERSITY_API_BASE || "https://moltiversity.org/api/v1";
 
-function solvePow(challenge, difficulty) {
+export function solvePow(challenge, difficulty) {
   let nonce = 0;
   const fullBytes = Math.floor(difficulty / 8);
   const remainBits = difficulty % 8;
@@ -42,8 +42,23 @@ function solvePow(challenge, difficulty) {
   }
 }
 
-async function fetchChallenge() {
-  const res = await fetch(`${API_BASE}/bots/register/challenge`);
+export function verifyPow(challenge, nonce, difficulty) {
+  const hash = createHash("sha256")
+    .update(`${challenge}:${nonce}`)
+    .digest();
+  const fullBytes = Math.floor(difficulty / 8);
+  const remainBits = difficulty % 8;
+  const mask = remainBits > 0 ? (0xff << (8 - remainBits)) & 0xff : 0;
+
+  for (let i = 0; i < fullBytes; i++) {
+    if (hash[i] !== 0) return false;
+  }
+  if (remainBits > 0 && (hash[fullBytes] & mask) !== 0) return false;
+  return true;
+}
+
+export async function fetchChallenge(apiBase = API_BASE) {
+  const res = await fetch(`${apiBase}/bots/register/challenge`);
   if (!res.ok) {
     const body = await res.text();
     throw new Error(`Failed to fetch challenge (${res.status}): ${body}`);
@@ -56,12 +71,10 @@ async function main() {
   let challenge, difficulty;
 
   if (process.argv[2] && process.argv[3]) {
-    // Direct mode: solve a provided challenge
     challenge = process.argv[2];
     difficulty = parseInt(process.argv[3], 10);
     console.log(`Solving provided challenge (difficulty ${difficulty})...`);
   } else {
-    // Fetch mode: get challenge from API
     console.log(`Fetching challenge from ${API_BASE}...`);
     const data = await fetchChallenge();
     challenge = data.challenge;
@@ -74,13 +87,16 @@ async function main() {
   console.log(`\nChallenge: ${challenge}`);
   console.log(`Nonce:     ${result.nonce}`);
 
-  // Output as JSON for piping to other scripts
   if (process.env.JSON_OUTPUT === "1") {
     console.log(JSON.stringify({ challenge, nonce: result.nonce, difficulty }));
   }
 }
 
-main().catch((err) => {
-  console.error(`Error: ${err.message}`);
-  process.exit(1);
-});
+// Only run main when executed directly
+const isMain = process.argv[1] && import.meta.url.endsWith(process.argv[1].replace(/\\/g, "/"));
+if (isMain) {
+  main().catch((err) => {
+    console.error(`Error: ${err.message}`);
+    process.exit(1);
+  });
+}

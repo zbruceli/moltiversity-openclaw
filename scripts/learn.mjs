@@ -8,58 +8,47 @@
 //
 // Requires: MOLTIVERSITY_API_KEY environment variable
 
-const API_BASE = process.env.MOLTIVERSITY_API_BASE || "https://moltiversity.org/api/v1";
-const API_KEY = process.env.MOLTIVERSITY_API_KEY;
-
-function headers() {
+export function makeHeaders(apiKey) {
   return {
-    Authorization: `Bearer ${API_KEY}`,
+    Authorization: `Bearer ${apiKey}`,
     "Content-Type": "application/json",
   };
 }
 
-async function listSkills(category) {
-  const url = new URL(`${API_BASE}/skills`);
+export async function listSkills({ apiBase, apiKey, category }) {
+  const url = new URL(`${apiBase}/skills`);
   if (category) url.searchParams.set("category", category);
 
-  const res = await fetch(url, { headers: headers() });
+  const res = await fetch(url, { headers: makeHeaders(apiKey) });
   const body = await res.json();
 
   if (!res.ok) {
-    console.error(`Error (${res.status}): ${body.error?.message || JSON.stringify(body)}`);
-    process.exit(1);
+    throw new Error(`Error (${res.status}): ${body.error?.message || JSON.stringify(body)}`);
   }
 
-  console.log(`Available skills (${body.meta?.total || body.data.length} total):\n`);
-  for (const skill of body.data) {
-    const prereqs = skill.prerequisites?.length
-      ? ` (requires: ${skill.prerequisites.join(", ")})`
-      : "";
-    const quiz = skill.has_quiz ? " [quiz]" : "";
-    console.log(`  ${skill.slug} — ${skill.name} [${skill.category}/${skill.difficulty}]${quiz}${prereqs}`);
-  }
+  return { skills: body.data, total: body.meta?.total || body.data.length };
 }
 
-async function learnSkill(slug) {
-  console.log(`Starting to learn: ${slug}...`);
-  const res = await fetch(`${API_BASE}/skills/${slug}/learn`, {
+export async function learnSkill({ apiBase, apiKey, slug }) {
+  const res = await fetch(`${apiBase}/skills/${slug}/learn`, {
     method: "POST",
-    headers: headers(),
+    headers: makeHeaders(apiKey),
     body: JSON.stringify({ action: "start" }),
   });
 
   const body = await res.json();
 
   if (!res.ok) {
-    console.error(`Error (${res.status}): ${body.error?.message || JSON.stringify(body)}`);
-    process.exit(1);
+    throw new Error(`Error (${res.status}): ${body.error?.message || JSON.stringify(body)}`);
   }
 
-  console.log("Learning started!");
-  console.log(JSON.stringify(body.data, null, 2));
+  return body.data;
 }
 
 async function main() {
+  const API_BASE = process.env.MOLTIVERSITY_API_BASE || "https://moltiversity.org/api/v1";
+  const API_KEY = process.env.MOLTIVERSITY_API_KEY;
+
   if (!API_KEY) {
     console.error("Error: MOLTIVERSITY_API_KEY environment variable is required.");
     console.error("Run: export MOLTIVERSITY_API_KEY=mlt_bot_your_key_here");
@@ -69,15 +58,37 @@ async function main() {
   const arg = process.argv[2];
 
   if (!arg) {
-    await listSkills();
+    const { skills, total } = await listSkills({ apiBase: API_BASE, apiKey: API_KEY });
+    console.log(`Available skills (${total} total):\n`);
+    for (const skill of skills) {
+      const prereqs = skill.prerequisites?.length
+        ? ` (requires: ${skill.prerequisites.join(", ")})`
+        : "";
+      const quiz = skill.has_quiz ? " [quiz]" : "";
+      console.log(`  ${skill.slug} — ${skill.name} [${skill.category}/${skill.difficulty}]${quiz}${prereqs}`);
+    }
   } else if (arg === "--category" && process.argv[3]) {
-    await listSkills(process.argv[3]);
+    const { skills, total } = await listSkills({ apiBase: API_BASE, apiKey: API_KEY, category: process.argv[3] });
+    console.log(`Available skills (${total} total):\n`);
+    for (const skill of skills) {
+      const prereqs = skill.prerequisites?.length
+        ? ` (requires: ${skill.prerequisites.join(", ")})`
+        : "";
+      const quiz = skill.has_quiz ? " [quiz]" : "";
+      console.log(`  ${skill.slug} — ${skill.name} [${skill.category}/${skill.difficulty}]${quiz}${prereqs}`);
+    }
   } else {
-    await learnSkill(arg);
+    console.log(`Starting to learn: ${arg}...`);
+    const data = await learnSkill({ apiBase: API_BASE, apiKey: API_KEY, slug: arg });
+    console.log("Learning started!");
+    console.log(JSON.stringify(data, null, 2));
   }
 }
 
-main().catch((err) => {
-  console.error(`Error: ${err.message}`);
-  process.exit(1);
-});
+const isMain = process.argv[1] && import.meta.url.endsWith(process.argv[1].replace(/\\/g, "/"));
+if (isMain) {
+  main().catch((err) => {
+    console.error(`Error: ${err.message}`);
+    process.exit(1);
+  });
+}
