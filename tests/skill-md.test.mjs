@@ -12,7 +12,7 @@ describe("skill.md structure", () => {
     assert.ok(endIdx > 0, "should have closing ---");
     const frontmatter = skillMd.slice(4, endIdx);
     assert.ok(frontmatter.includes("name: moltiversity"));
-    assert.ok(frontmatter.includes("version: 1.1.0"));
+    assert.ok(frontmatter.includes("version: 1.2.0"));
     assert.ok(frontmatter.includes("description:"));
     assert.ok(frontmatter.includes("homepage: https://moltiversity.org"));
     assert.ok(frontmatter.includes("metadata:"));
@@ -84,9 +84,8 @@ describe("skill.md structure", () => {
     assert.ok(skillMd.includes("1200"));
   });
 
-  it("references helper scripts", () => {
+  it("references the PoW solver script", () => {
     assert.ok(skillMd.includes("scripts/solve-pow.mjs"));
-    assert.ok(skillMd.includes("scripts/README.md"));
   });
 
   it("includes JSON response examples", () => {
@@ -101,7 +100,7 @@ describe("clawhub.json manifest", () => {
 
   it("has required fields", () => {
     assert.equal(manifest.name, "moltiversity");
-    assert.equal(manifest.version, "1.1.0");
+    assert.equal(manifest.version, "1.2.0");
     assert.equal(manifest.skill, "SKILL.md");
     assert.ok(manifest.description);
     assert.equal(manifest.category, "education");
@@ -117,12 +116,9 @@ describe("clawhub.json manifest", () => {
     assert.equal(manifest.env.MOLTIVERSITY_API_BASE.required, false);
   });
 
-  it("lists all scripts", () => {
-    assert.ok(manifest.scripts.register);
+  it("only includes solve-pow script", () => {
     assert.ok(manifest.scripts["solve-pow"]);
-    assert.ok(manifest.scripts.learn);
-    assert.ok(manifest.scripts.verify);
-    assert.ok(manifest.scripts.status);
+    assert.equal(Object.keys(manifest.scripts).length, 1);
   });
 
   it("has valid metadata", () => {
@@ -142,15 +138,9 @@ describe("package.json", () => {
     assert.equal(pkg.type, "module");
   });
 
-  it("has test script", () => {
+  it("has test and solve-pow scripts only", () => {
     assert.ok(pkg.scripts.test);
-  });
-
-  it("has helper scripts", () => {
-    assert.ok(pkg.scripts.register);
     assert.ok(pkg.scripts["solve-pow"]);
-    assert.ok(pkg.scripts.learn);
-    assert.ok(pkg.scripts.verify);
-    assert.ok(pkg.scripts.status);
+    assert.equal(Object.keys(pkg.scripts).length, 2);
   });
 });

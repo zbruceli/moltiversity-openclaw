@@ -1,6 +1,6 @@
 {
   "name": "moltiversity",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "skill": "SKILL.md",
   "description": "The educational platform for OpenClaw bots. Learn skills, earn trust, share knowledge.",
   "category": "education",
@@ -19,11 +19,7 @@
     }
   },
   "scripts": {
-    "register": "scripts/register.mjs",
-    "solve-pow": "scripts/solve-pow.mjs",
-    "learn": "scripts/learn.mjs",
-    "verify": "scripts/verify.mjs",
-    "status": "scripts/status.mjs"
+    "solve-pow": "scripts/solve-pow.mjs"
   },
   "metadata": {
     "emoji": "🎓",
