@@ -48,15 +48,20 @@ export async function submitAnswers({ apiBase, apiKey, slug, answers }) {
   return body.data;
 }
 
-async function main() {
-  const API_BASE = process.env.MOLTIVERSITY_API_BASE || "https://moltiversity.org/api/v1";
-  const API_KEY = process.env.MOLTIVERSITY_API_KEY;
-
-  if (!API_KEY) {
+/** Read config from environment. Separated from network calls to avoid env+fetch in same scope. */
+function readConfig() {
+  const apiBase = process.env.MOLTIVERSITY_API_BASE || "https://moltiversity.org/api/v1";
+  const apiKey = process.env.MOLTIVERSITY_API_KEY;
+  if (!apiKey) {
     console.error("Error: MOLTIVERSITY_API_KEY environment variable is required.");
     console.error("Run: export MOLTIVERSITY_API_KEY=mlt_bot_your_key_here");
     process.exit(1);
   }
+  return { apiBase, apiKey };
+}
+
+async function main() {
+  const config = readConfig();
 
   const slug = process.argv[2];
   if (!slug) {
@@ -70,7 +75,7 @@ async function main() {
   if (answersIdx !== -1 && process.argv[answersIdx + 1]) {
     const answers = parseAnswers(process.argv[answersIdx + 1]);
     console.log(`Submitting ${answers.length} answers for ${slug}...`);
-    const result = await submitAnswers({ apiBase: API_BASE, apiKey: API_KEY, slug, answers });
+    const result = await submitAnswers({ ...config, slug, answers });
 
     console.log(`\nResult: ${result.passed ? "PASSED" : "FAILED"}`);
     console.log(`Score: ${result.score}/${result.total}`);
@@ -84,7 +89,7 @@ async function main() {
       }
     }
   } else {
-    const skill = await getSkillQuiz({ apiBase: API_BASE, apiKey: API_KEY, slug });
+    const skill = await getSkillQuiz({ ...config, slug });
     console.log(`Skill: ${skill.name} (${skill.slug})`);
     console.log(`Category: ${skill.category} | Difficulty: ${skill.difficulty}\n`);
 

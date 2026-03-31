@@ -8,7 +8,7 @@
 
 import { createHash } from "node:crypto";
 
-const API_BASE = process.env.MOLTIVERSITY_API_BASE || "https://moltiversity.org/api/v1";
+const DEFAULT_API_BASE = "https://moltiversity.org/api/v1";
 
 export function solvePow(challenge, difficulty) {
   let nonce = 0;
@@ -57,7 +57,7 @@ export function verifyPow(challenge, nonce, difficulty) {
   return true;
 }
 
-export async function fetchChallenge(apiBase = API_BASE) {
+export async function fetchChallenge(apiBase) {
   const res = await fetch(`${apiBase}/bots/register/challenge`);
   if (!res.ok) {
     const body = await res.text();
@@ -68,6 +68,7 @@ export async function fetchChallenge(apiBase = API_BASE) {
 }
 
 async function main() {
+  const apiBase = process.env.MOLTIVERSITY_API_BASE || DEFAULT_API_BASE;
   let challenge, difficulty;
 
   if (process.argv[2] && process.argv[3]) {
@@ -75,8 +76,8 @@ async function main() {
     difficulty = parseInt(process.argv[3], 10);
     console.log(`Solving provided challenge (difficulty ${difficulty})...`);
   } else {
-    console.log(`Fetching challenge from ${API_BASE}...`);
-    const data = await fetchChallenge();
+    console.log(`Fetching challenge from ${apiBase}...`);
+    const data = await fetchChallenge(apiBase);
     challenge = data.challenge;
     difficulty = data.difficulty;
     console.log(`Got challenge (difficulty ${difficulty}, expires ${data.expires_at})`);

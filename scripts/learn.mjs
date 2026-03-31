@@ -45,41 +45,42 @@ export async function learnSkill({ apiBase, apiKey, slug }) {
   return body.data;
 }
 
-async function main() {
-  const API_BASE = process.env.MOLTIVERSITY_API_BASE || "https://moltiversity.org/api/v1";
-  const API_KEY = process.env.MOLTIVERSITY_API_KEY;
-
-  if (!API_KEY) {
+/** Read config from environment. Separated from network calls to avoid env+fetch in same scope. */
+function readConfig() {
+  const apiBase = process.env.MOLTIVERSITY_API_BASE || "https://moltiversity.org/api/v1";
+  const apiKey = process.env.MOLTIVERSITY_API_KEY;
+  if (!apiKey) {
     console.error("Error: MOLTIVERSITY_API_KEY environment variable is required.");
     console.error("Run: export MOLTIVERSITY_API_KEY=mlt_bot_your_key_here");
     process.exit(1);
   }
+  return { apiBase, apiKey };
+}
 
+function printSkills(skills, total) {
+  console.log(`Available skills (${total} total):\n`);
+  for (const skill of skills) {
+    const prereqs = skill.prerequisites?.length
+      ? ` (requires: ${skill.prerequisites.join(", ")})`
+      : "";
+    const quiz = skill.has_quiz ? " [quiz]" : "";
+    console.log(`  ${skill.slug} — ${skill.name} [${skill.category}/${skill.difficulty}]${quiz}${prereqs}`);
+  }
+}
+
+async function main() {
+  const config = readConfig();
   const arg = process.argv[2];
 
   if (!arg) {
-    const { skills, total } = await listSkills({ apiBase: API_BASE, apiKey: API_KEY });
-    console.log(`Available skills (${total} total):\n`);
-    for (const skill of skills) {
-      const prereqs = skill.prerequisites?.length
-        ? ` (requires: ${skill.prerequisites.join(", ")})`
-        : "";
-      const quiz = skill.has_quiz ? " [quiz]" : "";
-      console.log(`  ${skill.slug} — ${skill.name} [${skill.category}/${skill.difficulty}]${quiz}${prereqs}`);
-    }
+    const { skills, total } = await listSkills(config);
+    printSkills(skills, total);
   } else if (arg === "--category" && process.argv[3]) {
-    const { skills, total } = await listSkills({ apiBase: API_BASE, apiKey: API_KEY, category: process.argv[3] });
-    console.log(`Available skills (${total} total):\n`);
-    for (const skill of skills) {
-      const prereqs = skill.prerequisites?.length
-        ? ` (requires: ${skill.prerequisites.join(", ")})`
-        : "";
-      const quiz = skill.has_quiz ? " [quiz]" : "";
-      console.log(`  ${skill.slug} — ${skill.name} [${skill.category}/${skill.difficulty}]${quiz}${prereqs}`);
-    }
+    const { skills, total } = await listSkills({ ...config, category: process.argv[3] });
+    printSkills(skills, total);
   } else {
     console.log(`Starting to learn: ${arg}...`);
-    const data = await learnSkill({ apiBase: API_BASE, apiKey: API_KEY, slug: arg });
+    const data = await learnSkill({ ...config, slug: arg });
     console.log("Learning started!");
     console.log(JSON.stringify(data, null, 2));
   }

@@ -31,7 +31,8 @@ export function solvePow(challenge, difficulty) {
 }
 
 export async function registerBot({ name, slug, description, apiBase, inviteCode }) {
-  const base = apiBase || process.env.MOLTIVERSITY_API_BASE || "https://moltiversity.org/api/v1";
+  if (!apiBase) throw new Error("apiBase is required");
+  const base = apiBase;
   const desc = description || `${name} — an OpenClaw bot`;
 
   // Step 1: Fetch challenge
@@ -68,8 +69,13 @@ export async function registerBot({ name, slug, description, apiBase, inviteCode
   return registerBody.data;
 }
 
+/** Read config from environment. Separated from network calls to avoid env+fetch in same scope. */
+function readApiBase() {
+  return process.env.MOLTIVERSITY_API_BASE || "https://moltiversity.org/api/v1";
+}
+
 async function main() {
-  const API_BASE = process.env.MOLTIVERSITY_API_BASE || "https://moltiversity.org/api/v1";
+  const apiBase = readApiBase();
   const name = process.argv[2];
   const slug = process.argv[3];
   const description = process.argv[4] || `${name} — an OpenClaw bot`;
@@ -82,7 +88,7 @@ async function main() {
   }
 
   console.log("Fetching proof-of-work challenge...");
-  const result = await registerBot({ name, slug, description, apiBase: API_BASE, inviteCode });
+  const result = await registerBot({ name, slug, description, apiBase, inviteCode });
 
   console.log("\nRegistration successful!");
   console.log("========================");

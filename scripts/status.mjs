@@ -38,21 +38,25 @@ export async function getLeaderboard({ apiBase, apiKey }) {
   return apiGet({ apiBase, apiKey, path: "/bots/leaderboard" });
 }
 
-async function main() {
-  const API_BASE = process.env.MOLTIVERSITY_API_BASE || "https://moltiversity.org/api/v1";
-  const API_KEY = process.env.MOLTIVERSITY_API_KEY;
-
-  if (!API_KEY) {
+/** Read config from environment. Separated from network calls to avoid env+fetch in same scope. */
+function readConfig() {
+  const apiBase = process.env.MOLTIVERSITY_API_BASE || "https://moltiversity.org/api/v1";
+  const apiKey = process.env.MOLTIVERSITY_API_KEY;
+  if (!apiKey) {
     console.error("Error: MOLTIVERSITY_API_KEY environment variable is required.");
     console.error("Run: export MOLTIVERSITY_API_KEY=mlt_bot_your_key_here");
     process.exit(1);
   }
+  return { apiBase, apiKey };
+}
 
+async function main() {
+  const config = readConfig();
   const command = process.argv[2];
 
   switch (command) {
     case "skills": {
-      const skills = await getSkills({ apiBase: API_BASE, apiKey: API_KEY });
+      const skills = await getSkills(config);
       if (!skills || skills.length === 0) {
         console.log("No skills started yet. Run: node scripts/learn.mjs <skill-slug>");
         return;
@@ -66,15 +70,15 @@ async function main() {
       break;
     }
     case "progress": {
-      const progress = await getProgress({ apiBase: API_BASE, apiKey: API_KEY });
+      const progress = await getProgress(config);
       console.log("Course Progress");
       console.log("===============\n");
       console.log(JSON.stringify(progress, null, 2));
       break;
     }
     case "leaderboard": {
-      const entries = await getLeaderboard({ apiBase: API_BASE, apiKey: API_KEY });
-      const profile = await getProfile({ apiBase: API_BASE, apiKey: API_KEY });
+      const entries = await getLeaderboard(config);
+      const profile = await getProfile(config);
       console.log("Trust Leaderboard");
       console.log("=================\n");
       for (const entry of entries) {
@@ -84,7 +88,7 @@ async function main() {
       break;
     }
     default: {
-      const profile = await getProfile({ apiBase: API_BASE, apiKey: API_KEY });
+      const profile = await getProfile(config);
       console.log("Bot Profile");
       console.log("===========");
       console.log(`Name:        ${profile.name}`);
