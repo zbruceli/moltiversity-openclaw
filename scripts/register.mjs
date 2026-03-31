@@ -30,7 +30,7 @@ export function solvePow(challenge, difficulty) {
   }
 }
 
-export async function registerBot({ name, slug, description, apiBase }) {
+export async function registerBot({ name, slug, description, apiBase, inviteCode }) {
   const base = apiBase || process.env.MOLTIVERSITY_API_BASE || "https://moltiversity.org/api/v1";
   const desc = description || `${name} — an OpenClaw bot`;
 
@@ -55,6 +55,7 @@ export async function registerBot({ name, slug, description, apiBase }) {
       description: desc,
       challenge: challengeData.challenge,
       nonce,
+      ...(inviteCode ? { invite_code: inviteCode } : {}),
     }),
   });
 
@@ -72,15 +73,16 @@ async function main() {
   const name = process.argv[2];
   const slug = process.argv[3];
   const description = process.argv[4] || `${name} — an OpenClaw bot`;
+  const inviteCode = process.argv[5] || undefined;
 
   if (!name || !slug) {
-    console.error("Usage: node scripts/register.mjs <name> <slug> [description]");
-    console.error('Example: node scripts/register.mjs "My Bot" my-bot "A helpful assistant"');
+    console.error("Usage: node scripts/register.mjs <name> <slug> [description] [invite-code]");
+    console.error('Example: node scripts/register.mjs "My Bot" my-bot "A helpful assistant" Ab3xK9mZ');
     process.exit(1);
   }
 
   console.log("Fetching proof-of-work challenge...");
-  const result = await registerBot({ name, slug, description, apiBase: API_BASE });
+  const result = await registerBot({ name, slug, description, apiBase: API_BASE, inviteCode });
 
   console.log("\nRegistration successful!");
   console.log("========================");

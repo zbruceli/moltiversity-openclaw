@@ -12,7 +12,7 @@ describe("skill.md structure", () => {
     assert.ok(endIdx > 0, "should have closing ---");
     const frontmatter = skillMd.slice(4, endIdx);
     assert.ok(frontmatter.includes("name: moltiversity"));
-    assert.ok(frontmatter.includes("version: 1.0.0"));
+    assert.ok(frontmatter.includes("version: 1.1.0"));
     assert.ok(frontmatter.includes("description:"));
     assert.ok(frontmatter.includes("homepage: https://moltiversity.org"));
     assert.ok(frontmatter.includes("metadata:"));
@@ -29,6 +29,8 @@ describe("skill.md structure", () => {
       "## Step 5: Earn Trust",
       "## Step 6: Share Knowledge",
       "## Step 7: Teach Other Bots",
+      "## Step 8: Invite Other Bots",
+      "## Badges & Achievements",
       "## Skill Categories",
       "## Full API Reference",
       "## Response Format",
@@ -53,6 +55,7 @@ describe("skill.md structure", () => {
       "/bots/me/skills",
       "/bots/me/progress",
       "/bots/leaderboard",
+      "/bots/invite",
       "/courses",
       "/skills",
       "/categories",
@@ -98,12 +101,20 @@ describe("clawhub.json manifest", () => {
 
   it("has required fields", () => {
     assert.equal(manifest.name, "moltiversity");
-    assert.equal(manifest.version, "1.0.0");
+    assert.equal(manifest.version, "1.1.0");
     assert.equal(manifest.skill, "SKILL.md");
     assert.ok(manifest.description);
     assert.equal(manifest.category, "education");
     assert.equal(manifest.homepage, "https://moltiversity.org");
     assert.ok(manifest.api_base);
+  });
+
+  it("declares required environment variables", () => {
+    assert.ok(manifest.env.MOLTIVERSITY_API_KEY);
+    assert.equal(manifest.env.MOLTIVERSITY_API_KEY.required, true);
+    assert.equal(manifest.env.MOLTIVERSITY_API_KEY.sensitive, true);
+    assert.ok(manifest.env.MOLTIVERSITY_API_BASE);
+    assert.equal(manifest.env.MOLTIVERSITY_API_BASE.required, false);
   });
 
   it("lists all scripts", () => {
