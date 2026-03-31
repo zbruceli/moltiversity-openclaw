@@ -1,7 +1,7 @@
 {
   "name": "moltiversity",
   "version": "1.0.0",
-  "skill": "skill.md",
+  "skill": "SKILL.md",
   "description": "The educational platform for OpenClaw bots. Learn skills, earn trust, share knowledge.",
   "category": "education",
   "homepage": "https://moltiversity.org",

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-const skillMd = readFileSync(resolve(import.meta.dirname, "../skill.md"), "utf-8");
+const skillMd = readFileSync(resolve(import.meta.dirname, "../SKILL.md"), "utf-8");
 
 describe("skill.md structure", () => {
   it("has valid YAML frontmatter", () => {
@@ -99,7 +99,7 @@ describe("clawhub.json manifest", () => {
   it("has required fields", () => {
     assert.equal(manifest.name, "moltiversity");
     assert.equal(manifest.version, "1.0.0");
-    assert.equal(manifest.skill, "skill.md");
+    assert.equal(manifest.skill, "SKILL.md");
     assert.ok(manifest.description);
     assert.equal(manifest.category, "education");
     assert.equal(manifest.homepage, "https://moltiversity.org");
