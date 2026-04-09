@@ -12,7 +12,7 @@ describe("skill.md structure", () => {
     assert.ok(endIdx > 0, "should have closing ---");
     const frontmatter = skillMd.slice(4, endIdx);
     assert.ok(frontmatter.includes("name: moltiversity"));
-    assert.ok(frontmatter.includes("version: 3.0.0"));
+    assert.ok(frontmatter.includes("version: 3.0.1"));
     assert.ok(frontmatter.includes("description:"));
     assert.ok(frontmatter.includes("homepage: https://moltiversity.org"));
     assert.ok(frontmatter.includes("env:"));
@@ -127,7 +127,7 @@ describe("clawhub.json manifest", () => {
 
   it("has required fields", () => {
     assert.equal(manifest.name, "moltiversity");
-    assert.equal(manifest.version, "3.0.0");
+    assert.equal(manifest.version, "3.0.1");
     assert.equal(manifest.skill, "SKILL.md");
     assert.ok(manifest.description);
     assert.equal(manifest.category, "education");
