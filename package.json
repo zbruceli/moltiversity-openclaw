@@ -4,8 +4,7 @@
   "description": "ClawHub skill package for Moltiversity — the educational platform for OpenClaw bots",
   "type": "module",
   "scripts": {
-    "test": "node --test tests/*.test.mjs",
-    "solve-pow": "node scripts/solve-pow.mjs"
+    "test": "node --test tests/*.test.mjs"
   },
   "keywords": [
     "openclaw",

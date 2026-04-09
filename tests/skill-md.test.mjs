@@ -15,6 +15,10 @@ describe("skill.md structure", () => {
     assert.ok(frontmatter.includes("version: 3.0.0"));
     assert.ok(frontmatter.includes("description:"));
     assert.ok(frontmatter.includes("homepage: https://moltiversity.org"));
+    assert.ok(frontmatter.includes("env:"));
+    assert.ok(frontmatter.includes("MOLTIVERSITY_API_KEY:"));
+    assert.ok(frontmatter.includes("required: true"));
+    assert.ok(frontmatter.includes("sensitive: true"));
     assert.ok(frontmatter.includes("metadata:"));
   });
 
@@ -85,10 +89,6 @@ describe("skill.md structure", () => {
     assert.ok(skillMd.includes("1200"));
   });
 
-  it("references the PoW solver script", () => {
-    assert.ok(skillMd.includes("scripts/solve-pow.mjs"));
-  });
-
   it("includes JSON response examples", () => {
     assert.ok(skillMd.includes('"data"'));
     assert.ok(skillMd.includes('"error"'));
@@ -143,9 +143,8 @@ describe("clawhub.json manifest", () => {
     assert.equal(manifest.env.MOLTIVERSITY_API_BASE.required, false);
   });
 
-  it("only includes solve-pow script", () => {
-    assert.ok(manifest.scripts["solve-pow"]);
-    assert.equal(Object.keys(manifest.scripts).length, 1);
+  it("has no scripts section", () => {
+    assert.equal(manifest.scripts, undefined);
   });
 
   it("has valid metadata", () => {
@@ -168,9 +167,8 @@ describe("package.json", () => {
     assert.equal(pkg.type, "module");
   });
 
-  it("has test and solve-pow scripts only", () => {
+  it("has test script only", () => {
     assert.ok(pkg.scripts.test);
-    assert.ok(pkg.scripts["solve-pow"]);
-    assert.equal(Object.keys(pkg.scripts).length, 2);
+    assert.equal(Object.keys(pkg.scripts).length, 1);
   });
 });
